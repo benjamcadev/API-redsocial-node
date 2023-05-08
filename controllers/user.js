@@ -2,11 +2,15 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("../helpers/jwt");
+const mongoosePagination = require("mongoose-pagination");
+
+
 //Acciones de prueba 
 const pruebaUser = (req,res) => {
     return res.status(200).send(
         {
-            message: "Mensaje enviado desde el controlador user.js"
+            message: "Mensaje enviado desde el controlador user.js",
+            usuario: req.user
         }
     );
 }
@@ -154,10 +158,123 @@ const login = (req,res) => {
     
 }
 
+const profile = (req,res) => {
+    // Recibir parametros del id de usuario por la url
+    const id = req.params.id;
+
+    // Consulta para sacar los datos del usuario
+     User.findById(id)
+    .select({password: 0, role: 0}) //select y 0 es para no mostrar esos campos en la consulta
+    .then((userProfile) => {
+        if (!userProfile) {
+            return res.status(404).send(
+                {
+                    status: "error",
+                    message: "El usuario no existe o hay un error"
+                }
+            );    
+        }
+        // Devolver el resultado
+        return res.status(200).send(
+            {
+                status: "success",
+                user: userProfile
+            }
+        );   
+    })
+ 
+}
+
+const list = (req,res) => {
+
+    //Controlar en que pagina estamos
+    let page = 1; //pagina por defecto
+
+    if (req.params.page) {
+        page = req.params.page;
+    }
+    page = parseInt(page);
+
+    //Cosnulta con mongoose paginate
+    let itemsPerPage = 5;
+
+    User.find()
+    .sort('_id')
+    .paginate(page,itemsPerPage)
+    .then(async (users) => {
+     //Devolve rel resultado
+    
+      // Get total users
+      const totalUsers = await User.countDocuments({}).exec();
+
+      if(!users)
+      {
+           return res.status(404).send
+           ({
+                status: "Error",
+                message: "No users avaliable...",
+                error: error
+           });
+      }
+
+     // Return response
+     return res.status(200).send
+     ({
+          status: 'Success',
+          users,
+          page,
+          itemsPerPage,
+          total: totalUsers,
+          pages: Math.ceil(totalUsers/itemsPerPage)
+     });
+        
+    })
+    .catch((error) =>
+    {
+         return res.status(500).send
+         ({
+              status: "Error",
+              error: error,
+              message: "Query error..."
+              
+         });
+    }); 
+}
+
+const update = (req,res) => {
+    // Recoger info del usuario a actualizar
+    const userToUpdate = req.user;
+
+    // Eliminar campos sobrantes
+
+    delete userToUpdate.iat;
+    delete userToUpdate.exp;
+    delete userToUpdate.image;
+    delete userToUpdate.role;
+
+    // Comprobar si el usuario ya existe
+    User.find
+
+    // si me llega la password cicfrarla
+
+    // Buscar y actualizar
+
+    
+      return res.status(200).send
+      ({
+           status: 'Success',
+           message: "Metodo de actualizar usuario"
+
+      });
+}
+
 //Exportar acciones
 
 module.exports = {
     pruebaUser,
     register,
-    login
+    login,
+    profile,
+    list,
+    update
 }

@@ -26,6 +26,7 @@ let token = req.headers.authorization.replace(/['"]+/g,'');
 // decodificar el token
 try {
     let payload = jwt.decode(token, secret);
+    
 
     // comprobar expiracion del token
     if (payload.exp <= moment().unix()) {
@@ -36,6 +37,11 @@ try {
         })
         
     }
+    // agregar datos de usuario a la request
+    req.user = payload;
+
+
+
 } catch (error) {
     return res.status(404).send({
         status: "error",
@@ -43,11 +49,14 @@ try {
         error
     })
 }
+ 
 
-    // agregar datos de usuario a la request
-    req.user = payload;
 
+   
     // pasar a ejcucion de accion
     next();
 }
 
+module.exports = {
+    auth
+}
