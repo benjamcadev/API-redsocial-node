@@ -243,7 +243,8 @@ const list = (req,res) => {
 
 const update = (req,res) => {
     // Recoger info del usuario a actualizar
-    const userToUpdate = req.user;
+    let userIdentity = req.user;
+    let userToUpdate = req.body;
 
     // Eliminar campos sobrantes
 
@@ -253,19 +254,53 @@ const update = (req,res) => {
     delete userToUpdate.role;
 
     // Comprobar si el usuario ya existe
-    User.find
+    //Control de usuarios duplicados
+    User.find(  { $or: [
+        {email: userToUpdate.email.toLowerCase()},
+        {nick: userToUpdate.nick.toLowerCase()}
+        ]})
 
-    // si me llega la password cicfrarla
+       .then( async (users) =>  {
 
-    // Buscar y actualizar
+        if (!users) {
+            return res.status(500).json(
+                {
+                    message: "Error en la consulta",
+                    status: "error"
+                }
+            )
+        }
 
-    
-      return res.status(200).send
-      ({
-           status: 'Success',
-           message: "Metodo de actualizar usuario"
+        if (users && users.length >= 1) {
+            return res.status(200).send({
+                message: "El usuario ya existe",
+                status: "success",
+            })
+        }
 
-      });
+
+            // Cifrar la contraseña 
+            if (userToUpdate.password) {
+                let pwd = await bcrypt.hash(params.password, 10); // el 10 es cuantas veces cifra la contraseña
+                userToUpdate.password = pwd;
+            }
+
+             // si me llega la password cicfrarla
+
+        // Buscar y actualizar
+
+        
+        return res.status(200).send
+        ({
+            status: 'Success',
+            message: "Metodo de actualizar usuario",
+            userToUpdate
+
+        });
+    });
+
+
+   
 }
 
 //Exportar acciones
