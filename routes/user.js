@@ -22,8 +22,9 @@ router.get("/prueba-usuario",autorizacion.auth, UserController.pruebaUser);
 router.post("/register",UserController.register);
 router.post("/login",UserController.login);
 router.get("/profile/:id",autorizacion.auth, UserController.profile);
-router.get("/list/:page?",autorizacion.auth, UserController.list);
+router.get("/list/:page?",autorizacion.auth, UserController.list); //EL SIGNO ? SIGNIFICA QUE EL PARAMETRO ES OPCIONAL
 router.put("/update",autorizacion.auth,UserController.update );
 router.post("/upload",[autorizacion.auth,uploads.single("file0")],UserController.upload);
+router.get("/avatar/:file",autorizacion.auth, UserController.avatar);
 // Exportar router
 module.exports = router;
