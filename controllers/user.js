@@ -3,6 +3,8 @@ const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("../helpers/jwt");
 const mongoosePagination = require("mongoose-pagination");
+const fs = require("fs");
+
 
 
 //Acciones de prueba 
@@ -271,7 +273,15 @@ const update = (req,res) => {
             )
         }
 
-        if (users && users.length >= 1) {
+        let userIsset = false;
+
+        users.forEach(user => {
+            if (user && user.id != userIdentity.id) {
+                userIsset = true;
+            }
+        })
+
+        if (userIsset) {
             return res.status(200).send({
                 message: "El usuario ya existe",
                 status: "success",
@@ -281,13 +291,33 @@ const update = (req,res) => {
 
             // Cifrar la contraseña 
             if (userToUpdate.password) {
-                let pwd = await bcrypt.hash(params.password, 10); // el 10 es cuantas veces cifra la contraseña
+                let pwd = await bcrypt.hash(userToUpdate.password, 10); // el 10 es cuantas veces cifra la contraseña
                 userToUpdate.password = pwd;
             }
 
              // si me llega la password cicfrarla
 
         // Buscar y actualizar
+       let userUpdate = await User.findByIdAndUpdate(userIdentity.id,userToUpdate,{new:true}) // el new:true devuelve el objeto actualizado
+        .then((userUpdate) => {
+
+            if (!userUpdate) {
+                return res.status(400).json(
+                    {
+                        message: "Error en la actualizacion",
+                        status: "error"
+                    }
+                    )}
+        })
+        .catch((error) => {
+            return res.status(500).json(
+                {
+                    message: "Error en el catch de actualizacion",
+                    status: "error"
+                    
+                }
+                )
+        })
 
         
         return res.status(200).send
@@ -303,6 +333,65 @@ const update = (req,res) => {
    
 }
 
+const upload = (req,res) => {
+
+    // Recoger el fichero de imagen y comprobar que existe
+    if (!req.file) {
+        return res.status(404).send({
+            status: "error",
+            message: "Peticion no incluye la imagen"
+        });
+    }
+
+    // Conseguir el nombre del archivo
+    let image = req.file.originalname;
+
+    // SDacar la extension del archivo
+    const imageSplit = image.split("\.");
+    const extension = imageSplit[1];
+
+    // Comprobar extension
+    if (extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif") {
+
+        // Si no es correcta, borrar archivo
+        const filePath = req.file.path;
+        const fileDeleted = fs.unlinkSync(filePath); //Borramos el archivo de forma async
+
+        return res.status(400).send({
+            status: "error",
+            message: "Extension del fichero invalida"
+        })
+    }
+
+    
+
+    // Si es correcta, guardan imagen en la bd
+    User.findOneAndUpdate(req.user.id,{image: req.file.filename},{new: true})
+    .then((userUpdated) => {
+
+        return res.status(200).send
+    ({
+        status: 'success',
+        user: userUpdated,
+        file: req.file
+       
+
+    });
+
+    })
+    .catch((error) => {
+        return res.status(500).send
+        ({
+            status: 'error',
+            message: 'Error en la subida del avatar'
+           
+    
+        });
+    })
+     
+    
+}
+
 //Exportar acciones
 
 module.exports = {
@@ -311,5 +400,6 @@ module.exports = {
     login,
     profile,
     list,
-    update
+    update,
+    upload
 }
