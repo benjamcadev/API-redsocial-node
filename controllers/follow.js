@@ -3,6 +3,9 @@ const Follow = require("../models/follow");
 const User = require("../models/user");
 const mongoosePaginate = require("mongoose-pagination");
 
+// importar helpers
+const followService = require("../helpers/followService");
+
 
 //Acciones de prueba
 const pruebaFollow = (req,res) => {
@@ -95,6 +98,8 @@ const following = (req,res) => {
     // sacar el id del usuario identificado
     let userId = req.user.id;
 
+   
+
     // comprobar si me llega el id por parametro en url
     if (req.params.id) {
         userId = req.params.id;
@@ -115,11 +120,15 @@ const following = (req,res) => {
     .populate("user followed","-password -role -__v") // Con esto le indico que me traiga los campos de la coleccion de donde viene esa id, una espeecie de inner join con las fk, con el "-" quito campos o puedo escribir los que quiero que aparecan
     .paginate(page, itemsPerPage)
     .then(async (follows) => {
+        
 
          // Get total users
       const totalFollows = await Follow.countDocuments({}).exec();
         // listado de usuarios de
     // sacar un array de los ids de los usuarios que me siguen y los que sigo 
+        let followUserIds = await followService.followUserIds(req.user.id);
+
+        
 
     return res.status(200).send(
         {
@@ -127,7 +136,9 @@ const following = (req,res) => {
             message: "Listado de usuarios que estoy siguiendo",
             follows,
             totalFollows,
-            pages: Math.ceil(totalFollows/itemsPerPage)
+            pages: Math.ceil(totalFollows/itemsPerPage),
+            user_following: followUserIds.following,
+            user_follow_me: followUserIds.followers
             
         }
     );
@@ -136,7 +147,8 @@ const following = (req,res) => {
         return res.status(500).send(
             {
                 status: "error",
-                message: "Hubo un error al listar los seguidores"
+                message: "Hubo un error al listar los seguidores",
+                error: error
                 
             }
         );
@@ -147,13 +159,66 @@ const following = (req,res) => {
 // Funcion que me lista los usuarios que siuen a cualquier otro usuario (seguidores)
 const followers = (req,res) => {
 
+     // sacar el id del usuario identificado
+     let userId = req.user.id;
+
+   
+
+     // comprobar si me llega el id por parametro en url
+     if (req.params.id) {
+         userId = req.params.id;
+     }
+     /// comprobar si me llega la pagina, si no la pagina 1
+     let page = 1;
+ 
+     if (req.params.page) {
+         page = req.params.page;
+     }
+ 
+     // usuarios por pagina quiero mostrar
+     const itemsPerPage = 5;
+
+    Follow.find({
+        followed: userId
+    })
+    .populate("user","-password -role -__v") // Con esto le indico que me traiga los campos de la coleccion de donde viene esa id, una espeecie de inner join con las fk, con el "-" quito campos o puedo escribir los que quiero que aparecan
+    .paginate(page, itemsPerPage)
+    .then(async (follows) => {
+        
+
+         // Get total users
+      const totalFollows = await Follow.countDocuments({}).exec();
+      
+    // sacar un array de los ids de los usuarios que me siguen y los que sigo 
+        let followUserIds = await followService.followUserIds(req.user.id);
+
+        
+
     return res.status(200).send(
         {
             status: "success",
-            message: "Listado de usuarios que me siguen"
+            message: "Listado de usuarios que me siguen",
+            follows,
+            totalFollows,
+            pages: Math.ceil(totalFollows/itemsPerPage),
+            user_following: followUserIds.following,
+            user_follow_me: followUserIds.followers
             
         }
     );
+    })
+    .catch((error) => {
+        return res.status(500).send(
+            {
+                status: "error",
+                message: "Hubo un error al listar los seguidores",
+                error: error
+                
+            }
+        );
+    })
+
+
 }
 
 //Exportar acciones

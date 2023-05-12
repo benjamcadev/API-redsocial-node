@@ -6,6 +6,9 @@ const mongoosePagination = require("mongoose-pagination");
 const fs = require("fs");
 const path = require("path");
 
+// importar helpers
+const followService = require("../helpers/followService");
+
 
 
 //Acciones de prueba 
@@ -168,7 +171,7 @@ const profile = (req,res) => {
     // Consulta para sacar los datos del usuario
      User.findById(id)
     .select({password: 0, role: 0}) //select y 0 es para no mostrar esos campos en la consulta
-    .then((userProfile) => {
+    .then(async (userProfile) => {
         if (!userProfile) {
             return res.status(404).send(
                 {
@@ -177,11 +180,17 @@ const profile = (req,res) => {
                 }
             );    
         }
+
+        // info de los follows
+        const followInfo = await followService.followThisUser(req.user.id, id) // paso el id del usuario logeado y el id del usuario del perfil 
         // Devolver el resultado
+        
         return res.status(200).send(
             {
                 status: "success",
-                user: userProfile
+                user: userProfile,
+                following: followInfo.following,
+                follower: followInfo.follower
             }
         );   
     })
@@ -210,6 +219,9 @@ const list = (req,res) => {
       // Get total users
       const totalUsers = await User.countDocuments({}).exec();
 
+       // sacar un array de los ids de los usuarios que me siguen y los que sigo 
+       let followUserIds = await followService.followUserIds(req.user.id);
+
       if(!users)
       {
            return res.status(404).send
@@ -228,7 +240,9 @@ const list = (req,res) => {
           page,
           itemsPerPage,
           total: totalUsers,
-          pages: Math.ceil(totalUsers/itemsPerPage)
+          pages: Math.ceil(totalUsers/itemsPerPage),
+          user_following: followUserIds.following,
+          user_follow_me: followUserIds.followers
      });
         
     })
