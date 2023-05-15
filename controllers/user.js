@@ -8,6 +8,7 @@ const path = require("path");
 
 // importar helpers
 const followService = require("../helpers/followService");
+const validate = require("../helpers/validate")
 
 
 
@@ -39,7 +40,21 @@ const pruebaUser = (req,res) => {
             )
         }
         
-       
+       // Validacion avanzada coon libreria "Validator"
+       try {
+        validate(params);
+       } catch (error) {
+        return res.status(400).json(
+            {
+                message: "Validacion no superada",
+                status: "error",
+                error
+            }
+        )
+       }
+
+
+
 
 
         //Control de usuarios duplicados
@@ -211,6 +226,7 @@ const list = (req,res) => {
     let itemsPerPage = 5;
 
     User.find()
+    .select("-password -email -__v")
     .sort('_id')
     .paginate(page,itemsPerPage)
     .then(async (users) => {
@@ -308,6 +324,8 @@ const update = (req,res) => {
             if (userToUpdate.password) {
                 let pwd = await bcrypt.hash(userToUpdate.password, 10); // el 10 es cuantas veces cifra la contraseña
                 userToUpdate.password = pwd;
+            }else{
+                delete userToUpdate.password; // Si no se envia la password se quita dle objeto para evitar sobrescribirla en el find
             }
 
              // si me llega la password cicfrarla
@@ -430,6 +448,37 @@ const avatar = (req,res) => {
     
 }
 
+const counters = async (req,res) => {
+   
+    let userId = req.user.id;
+
+    if (req.params.id) {
+        userId = req.params.id
+    }
+
+    try {
+        const following = await Follow.count({"user": userId}); //.count es un metodo de mongoose para hacer un count
+
+        const followed = await Follow.count({"followed": userId});
+
+        const publications = await Publication.count({"user": userId});
+
+        return res.status(200).send({
+            userId,
+            following: following,
+            followed: followed,
+            publications: publications
+        });
+        
+    } catch (error) {
+        return res.status(500).send({
+            status: "error",
+            message: "Error en los contadores",
+            error
+        });
+    }
+}
+
 //Exportar acciones
 
 module.exports = {
@@ -440,5 +489,6 @@ module.exports = {
     list,
     update,
     upload,
-    avatar
+    avatar,
+    counters
 }

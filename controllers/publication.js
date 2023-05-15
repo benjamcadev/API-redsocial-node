@@ -152,7 +152,7 @@ const user = (req,res) => {
         "user": userId
     })
     .sort("-created_at")
-    .populate("user", "-password -__v -role")
+    .populate("user", "-password -__v -role -email")
     .paginate(page, itemsPerPage)
     .then(async(publications) => {
 
@@ -294,20 +294,36 @@ const feed = async (req,res) => {
           // find a publicaciones con el operador $in, hace match con valores en array, odenar, popular y paginar
 
         Publication.find({
-            user: {"$in": myFollows.following}
+            user:  myFollows.following
           })
+          .populate("user", "-password -role -__v -email")
+          .sort("-created_at") // ordenar de forma descendente
+          .paginate(page,itemsPerPage)
           .then(async (publications) => {
 
-
+            // Get total users
+            const totalPublications = await Publication.countDocuments({}).exec();
             return res.status(200).send(
                 {
                     status: "success",
                    message: "Feed de publicaciones",
                    myFollows: myFollows.following,
-                   publications
+                   publications,
+                   totalPublications,
+                   page,
+                   pages: Math.ceil(totalPublications / itemsPerPage)
+
                 }
             );
 
+          })
+          .catch((error) => {
+            return res.status(500).send(
+                {
+                    status: "error",
+                   message: "No hay publicaciones"
+                }
+            );
           })
           
    

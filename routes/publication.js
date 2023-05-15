@@ -26,7 +26,7 @@ router.get("/detail/:id", autorizacion.auth, PublicationController.detail);
 router.delete("/remove/:id",autorizacion.auth, PublicationController.remove);
 router.get("/user/:id/:page?", autorizacion.auth, PublicationController.user);
 router.post("/upload/:id", [autorizacion.auth, uploads.single("file0")], PublicationController.upload)
-router.get("/media/:file", autorizacion.auth, PublicationController.media);
+router.get("/media/:file",  PublicationController.media);
 router.get("/feed/:page?",autorizacion.auth, PublicationController.feed);
 // Exportar router
 module.exports = router;

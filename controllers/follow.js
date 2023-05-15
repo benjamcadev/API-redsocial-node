@@ -117,7 +117,7 @@ const following = (req,res) => {
     Follow.find({
         user: userId
     })
-    .populate("user followed","-password -role -__v") // Con esto le indico que me traiga los campos de la coleccion de donde viene esa id, una espeecie de inner join con las fk, con el "-" quito campos o puedo escribir los que quiero que aparecan
+    .populate("user followed","-password -role -__v -email") // Con esto le indico que me traiga los campos de la coleccion de donde viene esa id, una espeecie de inner join con las fk, con el "-" quito campos o puedo escribir los que quiero que aparecan
     .paginate(page, itemsPerPage)
     .then(async (follows) => {
         
@@ -181,7 +181,7 @@ const followers = (req,res) => {
     Follow.find({
         followed: userId
     })
-    .populate("user","-password -role -__v") // Con esto le indico que me traiga los campos de la coleccion de donde viene esa id, una espeecie de inner join con las fk, con el "-" quito campos o puedo escribir los que quiero que aparecan
+    .populate("user","-password -role -__v -email") // Con esto le indico que me traiga los campos de la coleccion de donde viene esa id, una espeecie de inner join con las fk, con el "-" quito campos o puedo escribir los que quiero que aparecan
     .paginate(page, itemsPerPage)
     .then(async (follows) => {
         
